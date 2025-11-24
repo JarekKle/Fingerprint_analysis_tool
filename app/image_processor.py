@@ -1,4 +1,4 @@
-from image_manager import ImageManager
+from app.image_manager import ImageManager
 
 
 class ImageProcessor:
@@ -41,3 +41,16 @@ class ImageProcessor:
         self.manager.handler = self.manager.handler.convert_to_grayscale()
         method = self.manager.handler.ask_binarization_method()
         self.manager.handler.apply_binarization(method)
+
+    def undo_change(self):
+        self.manager.handler.undo_change()
+        if self.manager.is_image_grayscale(self.manager.handler.img_modified):
+            self.manager.handler = self.manager.handler.convert_to_grayscale()
+
+    def change_image(self, step):
+        ord = self.manager.current_handler_ord
+        count = len(self.manager.handlers)
+        new_ord = (ord + step) % count
+        new_handler = self.manager.handlers[new_ord - 1]
+        self.manager.handler = new_handler
+        self.manager.current_handler_ord = new_ord

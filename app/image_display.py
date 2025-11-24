@@ -1,8 +1,8 @@
 import numpy as np
 from PIL import Image
 
-from coordinates import Coordinates
-from image_manager import ImageManager
+from app.coordinates import Coordinates
+from app.image_manager import ImageManager
 
 
 class ImageDisplay:

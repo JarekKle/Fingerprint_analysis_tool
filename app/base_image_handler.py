@@ -23,6 +23,7 @@ class BaseImageHandler:
         self.img_original = img
         self.img_modified = self.img_original.copy()
         self.img_display = self.img_original.copy()
+        self.img_change_history = []
 
     def change_pixel_color(self, coords):
         ...
@@ -30,7 +31,24 @@ class BaseImageHandler:
     def restore_original(self):
         self.img_modified = self.img_original.copy()
         self.img_display = self.img_modified.copy()
+        self.img_change_history = []
 
+    def update_image(self, img):
+        img = Image.fromarray(img)
+        self.img_modified = img
+        self.img_display = self.img_modified.copy()
+        self.img_change_history.append(self.img_modified.copy())
+
+    def undo_change(self):
+        count = len(self.img_change_history)
+        if count > 1:
+            self.img_modified = self.img_change_history[count - 2]
+            self.img_display = self.img_modified.copy()
+            self.img_change_history.pop()
+        if count == 1:
+            self.img_modified = self.img_original.copy()
+            self.img_display = self.img_modified.copy()
+            self.img_change_history.pop()
     def convert_to_grayscale(self):
         ...
 
@@ -81,8 +99,7 @@ class BaseImageHandler:
             arr = np.array(self.img_modified, dtype=np.float32)
             arr = arr + c
             arr = np.clip(arr, 0, 255).astype(np.uint8)
-            self.img_modified = Image.fromarray(arr)
-            self.img_display = self.img_modified.copy()
+            self.update_image(arr)
             root.destroy()
 
         tk.Button(root, text="OK", command=brighten, width=18).grid(row=1, column=0, columnspan=3)
@@ -101,8 +118,7 @@ class BaseImageHandler:
             arr = np.array(self.img_modified)
             arr = arr * n
             arr = np.clip(arr, 0, 255).astype(np.uint8)
-            self.img_modified = Image.fromarray(arr)
-            self.img_display = self.img_modified.copy()
+            self.update_image(arr)
             root.destroy()
 
         tk.Button(root, text="OK", command=brighten, width=18).grid(row=1, column=0, columnspan=3)
@@ -124,8 +140,7 @@ class BaseImageHandler:
             arr = np.array(self.img_modified).astype(np.float32)
             arr = c * np.power(arr / 255.0, n) * 255
             arr = np.clip(arr, 0, 255).astype(np.uint8)
-            self.img_modified = Image.fromarray(arr)
-            self.img_display = self.img_modified.copy()
+            self.update_image(arr)
             root.destroy()
 
         tk.Button(root, text="OK", command=brighten, width=18).grid(row=1, column=0, columnspan=3)
@@ -373,8 +388,7 @@ class BaseImageHandler:
             arr = np.array(self.img_modified).astype(np.uint8)
             arr[arr < threshold] = 0
             arr[arr >= threshold] = 255
-            self.img_modified = Image.fromarray(arr)
-            self.img_display = self.img_modified.copy()
+            self.update_image(arr)
             root.destroy()
 
         tk.Button(root, text="OK", command=binarize, width=18).grid(row=1, column=0, columnspan=3)
@@ -402,8 +416,7 @@ class BaseImageHandler:
                 else:
                     lut[i] = 255
             arr = lut[arr]
-            self.img_modified = Image.fromarray(arr)
-            self.img_display = self.img_modified.copy()
+            self.update_image(arr)
             root.destroy()
 
         tk.Button(root, text="OK", command=binarize, width=18).grid(row=1, column=0, columnspan=3)
@@ -424,8 +437,7 @@ class BaseImageHandler:
 
         arr[arr < t_opt] = 0
         arr[arr >= t_opt] = 255
-        self.img_modified = Image.fromarray(arr)
-        self.img_display = self.img_modified.copy()
+        self.update_image(arr)
 
     def ask_niblack_window_size(self):
         root = tk.Toplevel()
@@ -474,8 +486,7 @@ class BaseImageHandler:
                     std[i, j] = np.std(region)
             threshold = mean + k * std
             binary = np.where(arr >= threshold, 255, 0).astype(np.uint8)
-            self.img_modified = Image.fromarray(binary)
-            self.img_display = self.img_modified.copy()
+            self.update_image(arr)
             root.destroy()
 
         tk.Button(root, text="OK", command=binarize).grid(row=1, column=0, columnspan=2)

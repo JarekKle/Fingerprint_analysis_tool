@@ -3,10 +3,10 @@ import tkinter as tk
 
 from PIL import ImageTk
 
-from coordinates import Coordinates
-from image_display import ImageDisplay
-from image_manager import ImageManager
-from image_processor import ImageProcessor
+from app.coordinates import Coordinates
+from app.image_display import ImageDisplay
+from app.image_manager import ImageManager
+from app.image_processor import ImageProcessor
 
 
 class AppWindow:
@@ -113,6 +113,12 @@ class AppWindow:
         self.button_down = tk.Button(arrow_frame, text="↓", width=12)
         self.button_down.grid(row=3, column=1)
 
+        self.button_img_left = tk.Button(arrow_frame, text="Left image", width=12)
+        self.button_img_left.grid(row=3, column=0)
+
+        self.button_img_right = tk.Button(arrow_frame, text="Right image", width=12)
+        self.button_img_right.grid(row=3, column=2)
+
         button_frame = tk.Frame(controls_frame)
         button_frame.pack(side=tk.TOP, pady=10, fill=tk.X)
 
@@ -143,6 +149,10 @@ class AppWindow:
         self.button_binarization = tk.Button(button_frame, text="Apply binarization", width=18)
         self.button_binarization.pack(side=tk.TOP, fill=tk.X, pady=2)
 
+        self.button_undo = tk.Button(button_frame, text="Undo change", width=18)
+        self.button_undo.pack(side=tk.TOP, fill=tk.X, pady=2)
+
+
     def _setup_status_bar(self):
         self.status_bar = tk.Label(self.master, text="Info will be displayed here", anchor="w", relief="sunken")
         self.status_bar.grid(row=1, column=0, columnspan=2, sticky="ew")
@@ -172,6 +182,9 @@ class AppWindow:
         self.button_linear_filters.config(command=self.linear_filter)
         self.button_median_filter.config(command=self.median_filter)
         self.button_binarization.config(command=self.apply_binarization)
+        self.button_undo.config(command=self.undo_change)
+        self.button_img_left.config(command=lambda: self.change_image(-1))
+        self.button_img_right.config(command=lambda: self.change_image(1))
 
     def restore_original(self):
         self.manager.restore_original()
@@ -207,6 +220,14 @@ class AppWindow:
 
     def apply_binarization(self):
         self.processor.apply_binarization()
+        self.update_window()
+
+    def undo_change(self):
+        self.processor.undo_change()
+        self.update_window()
+
+    def change_image(self, step):
+        self.processor.change_image(step)
         self.update_window()
     def run(self):
         self.master.mainloop()

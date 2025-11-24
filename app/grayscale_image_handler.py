@@ -3,8 +3,8 @@ from tkinter import messagebox
 import numpy as np
 from matplotlib import pyplot as plt
 
-from base_image_handler import BaseImageHandler
-from coordinates import Coordinates
+from app.base_image_handler import BaseImageHandler
+from app.coordinates import Coordinates
 import tkinter as tk
 from PIL import Image
 
@@ -28,6 +28,7 @@ class GrayscaleImageHandler(BaseImageHandler):
                 if 0 <= gray <= 255:
                     self.img_modified.putpixel((coords.x, coords.y), gray)
                     self.img_display = self.img_modified.copy()
+                    self.img_change_history.append(self.img_modified)
                     root.destroy()
                 else:
                     messagebox.showerror("Błąd", "Wartość musi być 0–255")
@@ -46,8 +47,7 @@ class GrayscaleImageHandler(BaseImageHandler):
         else:
             stretched = arr.astype(np.uint8)
 
-        self.img_modified = Image.fromarray(stretched)
-        self.img_display = self.img_modified.copy()
+        self.update_image(stretched)
 
     def display_histogram(self):
         arr = np.array(self.img_modified).astype(np.uint8)
@@ -60,17 +60,14 @@ class GrayscaleImageHandler(BaseImageHandler):
     def equalize_histogram(self):
         arr = np.array(self.img_modified).astype(np.uint8)
         equalized = self.equalize_channel(arr)
-        self.img_modified = Image.fromarray(equalized)
-        self.img_display = self.img_modified.copy()
+        self.update_image(equalized)
 
     def linear_filter(self, kernel):
         arr = np.array(self.img_modified).astype(np.uint8)
         filtered = self.linear_filter_channel(arr, kernel)
-        self.img_modified = Image.fromarray(filtered)
-        self.img_display = self.img_modified.copy()
+        self.update_image(filtered)
 
     def median_filter(self, size):
         arr = np.array(self.img_modified).astype(np.uint8)
         filtered = self.median_channel(arr, size)
-        self.img_modified = Image.fromarray(filtered)
-        self.img_display = self.img_modified.copy()
+        self.update_image(filtered)

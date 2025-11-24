@@ -3,11 +3,11 @@ from tkinter import messagebox
 import numpy as np
 from matplotlib import pyplot as plt
 
-from base_image_handler import BaseImageHandler
+from app.base_image_handler import BaseImageHandler
 import tkinter as tk
 from PIL import Image
 
-from grayscale_image_handler import GrayscaleImageHandler
+from app.grayscale_image_handler import GrayscaleImageHandler
 
 
 class ColorImageHandler(BaseImageHandler):
@@ -44,6 +44,7 @@ class ColorImageHandler(BaseImageHandler):
                 if 0 <= r <= 255 and 0 <= g <= 255 and 0 <= b <= 255:
                     self.img_modified.putpixel((coords.x, coords.y), (r, g, b))
                     self.img_display = self.img_modified.copy()
+                    self.img_change_history.append(self.img_modified)
                     root.destroy()
                 else:
                     messagebox.showerror("Błąd", "Wartości muszą być 0–255")
@@ -66,8 +67,7 @@ class ColorImageHandler(BaseImageHandler):
                 ch_stretched = ch.copy()
             stretched_channels.append(ch_stretched)
         stretched = np.stack(stretched_channels, axis=-1).astype(np.uint8)
-        self.img_modified = Image.fromarray(stretched)
-        self.img_display = self.img_modified.copy()
+        self.update_image(stretched)
 
     def display_histogram(self):
         arr = np.array(self.img_modified).astype(np.uint8)
@@ -100,8 +100,7 @@ class ColorImageHandler(BaseImageHandler):
         for i in range(3):
             equalized_channels.append(self.equalize_channel(arr[..., i]))
         equalized = np.stack(equalized_channels, axis=-1).astype(np.uint8)
-        self.img_modified = Image.fromarray(equalized)
-        self.img_display = self.img_modified.copy()
+        self.update_image(equalized)
 
     def linear_filter(self, kernel):
         arr = np.array(self.img_modified).astype(np.uint8)
@@ -109,8 +108,7 @@ class ColorImageHandler(BaseImageHandler):
         for i in range(3):
             filtered_channels.append(self.linear_filter_channel(arr[..., i], kernel))
         filtered = np.stack(filtered_channels, axis=-1)
-        self.img_modified = Image.fromarray(filtered)
-        self.img_display = self.img_modified.copy()
+        self.update_image(filtered)
 
     def median_filter(self, size):
         arr = np.array(self.img_modified).astype(np.uint8)
@@ -118,5 +116,4 @@ class ColorImageHandler(BaseImageHandler):
         for i in range(3):
             filtered_channels.append(self.median_channel(arr[..., i], size))
         filtered = np.stack(filtered_channels, axis=-1)
-        self.img_modified = Image.fromarray(filtered)
-        self.img_display = self.img_modified.copy()
+        self.update_image(filtered)
