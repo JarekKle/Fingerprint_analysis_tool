@@ -1,6 +1,8 @@
 from tkinter import Tk
 import tkinter as tk
 
+import cv2
+import numpy as np
 from PIL import ImageTk
 
 from app.coordinates import Coordinates
@@ -16,6 +18,57 @@ class AppWindow:
         self.processor = processor
         self.master = Tk()
         self.photo = None
+        self.operation_buttons = {
+            "restore_original": {
+                "text": "Restore original image",
+                "on_click": self.restore_original
+            },
+            "convert_to_grayscale": {
+                "text": "Convert to grayscale",
+                "on_click": self.convert_to_grayscale
+            },
+            "adjust_brightness": {
+                "text": "Adjust brightness",
+                "on_click": self.adjust_brightness
+            },
+            "display_histogram": {
+                "text": "Display histogram",
+                "on_click": self.display_histogram
+            },
+            "stretch_histogram": {
+                "text": "Stretch histogram",
+                "on_click": self.stretch_histogram
+            },
+            "equalize_histogram": {
+                "text": "Equalize histogram",
+                "on_click": self.equalize_histogram
+            },
+            "clahe": {
+                "text": "Apply CLAHE",
+                "on_click": self.apply_clahe
+            },
+            "linear_filter": {
+                "text": "Apply linear filter",
+                "on_click": self.linear_filter
+            },
+            "median_filter": {
+                "text": "Apply median filter",
+                "on_click": self.median_filter
+            },
+            "binarization": {
+                "text": "Apply binarization",
+                "on_click": self.apply_binarization
+            },
+            "thinning": {
+                "text": "Thinning",
+                "on_click": self.apply_thinning
+            },
+            "undo": {
+                "text": "Undo change",
+                "on_click": self.undo_change
+            }
+        }
+
         self.current_pixel_rgb = (0, 0, 0)
         self.current_pixel_coords = Coordinates(0, 0)
         self.real_pixel_coords = Coordinates(0, 0)
@@ -122,35 +175,16 @@ class AppWindow:
         button_frame = tk.Frame(controls_frame)
         button_frame.pack(side=tk.TOP, pady=10, fill=tk.X)
 
-        self.button_restore_original = tk.Button(button_frame, text="Restore original image", width=18)
-        self.button_restore_original.pack(side=tk.TOP, fill=tk.X, pady=2)
+        for key, data in self.operation_buttons.items():
+            btn = tk.Button(
+                button_frame,
+                text=data["text"],
+                width=18,
+                command=data["on_click"]
+            )
+            btn.pack(side=tk.TOP, fill=tk.X, pady=2)
 
-        self.button_convert_to_grayscale = tk.Button(button_frame, text="Convert to grayscale", width=18)
-        self.button_convert_to_grayscale.pack(side=tk.TOP, fill=tk.X, pady=2)
-
-        self.button_adjust_brightness = tk.Button(button_frame, text="Adjust brightness", width=18)
-        self.button_adjust_brightness.pack(side=tk.TOP, fill=tk.X, pady=2)
-
-        self.button_display_histogram = tk.Button(button_frame, text="Display histogram", width=18)
-        self.button_display_histogram.pack(side=tk.TOP, fill=tk.X, pady=2)
-
-        self.button_stretch_histogram = tk.Button(button_frame, text="Stretch histogram", width=18)
-        self.button_stretch_histogram.pack(side=tk.TOP, fill=tk.X, pady=2)
-
-        self.button_equalize_histogram = tk.Button(button_frame, text="Equalize histogram", width=18)
-        self.button_equalize_histogram.pack(side=tk.TOP, fill=tk.X, pady=2)
-
-        self.button_linear_filters = tk.Button(button_frame, text="Apply linear filter", width=18)
-        self.button_linear_filters.pack(side=tk.TOP, fill=tk.X, pady=2)
-
-        self.button_median_filter = tk.Button(button_frame, text="Apply median filter", width=18)
-        self.button_median_filter.pack(side=tk.TOP, fill=tk.X, pady=2)
-
-        self.button_binarization = tk.Button(button_frame, text="Apply binarization", width=18)
-        self.button_binarization.pack(side=tk.TOP, fill=tk.X, pady=2)
-
-        self.button_undo = tk.Button(button_frame, text="Undo change", width=18)
-        self.button_undo.pack(side=tk.TOP, fill=tk.X, pady=2)
+            data["object"] = btn
 
 
     def _setup_status_bar(self):
@@ -173,16 +207,6 @@ class AppWindow:
         self.button_zoom_in.config(command=lambda: self.zoom(1))
         self.button_zoom_out.config(command=lambda: self.zoom(-1))
 
-        self.button_restore_original.config(command=self.restore_original)
-        self.button_convert_to_grayscale.config(command=self.convert_to_grayscale)
-        self.button_adjust_brightness.config(command=self.adjust_brightness)
-        self.button_display_histogram.config(command=self.display_histogram)
-        self.button_stretch_histogram.config(command=self.stretch_histogram)
-        self.button_equalize_histogram.config(command=self.equalize_histogram)
-        self.button_linear_filters.config(command=self.linear_filter)
-        self.button_median_filter.config(command=self.median_filter)
-        self.button_binarization.config(command=self.apply_binarization)
-        self.button_undo.config(command=self.undo_change)
         self.button_img_left.config(command=lambda: self.change_image(-1))
         self.button_img_right.config(command=lambda: self.change_image(1))
 
@@ -210,6 +234,10 @@ class AppWindow:
         self.processor.equalize_histogram()
         self.update_window()
 
+    def apply_clahe(self):
+        self.processor.apply_clahe()
+        self.update_window()
+
     def linear_filter(self):
         self.processor.linear_filter()
         self.update_window()
@@ -220,6 +248,10 @@ class AppWindow:
 
     def apply_binarization(self):
         self.processor.apply_binarization()
+        self.update_window()
+
+    def apply_thinning(self):
+        self.processor.apply_thinning()
         self.update_window()
 
     def undo_change(self):

@@ -1,9 +1,10 @@
 import tkinter as tk
 from enum import Enum
 
+import cv2
 import numpy as np
 from PIL import Image
-
+from app.thinning_algorithm import zhangSuen
 
 class AdjustmentMethods(Enum):
     ADDITION = 0
@@ -171,6 +172,33 @@ class BaseImageHandler:
     def equalize_histogram(self):
         ...
 
+    def apply_clahe(self):
+        cv2_img = np.array(self.img_modified)
+
+        if cv2_img.ndim == 2:
+            clahe = cv2.createCLAHE(clipLimit=5, tileGridSize=(8, 8))
+            clahe_img = clahe.apply(cv2_img)
+
+        else:
+            if cv2_img.shape[2] == 4:
+                cv2_img = cv2.cvtColor(cv2_img, cv2.COLOR_RGBA2RGB)
+
+            lab = cv2.cvtColor(cv2_img, cv2.COLOR_RGB2LAB)
+            l, a, b = cv2.split(lab)
+
+            clahe = cv2.createCLAHE(clipLimit=5, tileGridSize=(8, 8))
+            l2 = clahe.apply(l)
+
+            lab2 = cv2.merge([l2, a, b])
+            clahe_img = cv2.cvtColor(lab2, cv2.COLOR_LAB2RGB)
+
+        self.update_image(clahe_img)
+
+    def pil_to_cv2_conversion(self, img):
+        return np.array(img)
+
+    def cv2_to_pil_conversion(self, img_np):
+        return Image.fromarray(img_np)
     def create_kernel(self, size):
         root = tk.Toplevel()
         root.title("Input your kernel")
@@ -492,3 +520,7 @@ class BaseImageHandler:
         tk.Button(root, text="OK", command=binarize).grid(row=1, column=0, columnspan=2)
         root.grab_set()
         root.wait_window()
+
+    def apply_thinning(self):
+        thin_img = zhangSuen(self.img_modified)
+        self.update_image(thin_img)

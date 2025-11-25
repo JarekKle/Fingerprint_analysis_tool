@@ -1,3 +1,5 @@
+import numpy as np
+
 from app.image_manager import ImageManager
 
 
@@ -14,6 +16,13 @@ class ImageProcessor:
     def restore_original(self):
         self.manager.restore_original()
 
+    def pil_to_cv2_conversion(self):
+        img = self.manager.handler.apply_clahe()
+
+        img = np.array(self.manager.handler.img_modified)
+        open_cv_image = img[:, :, ::-1].copy()
+        return open_cv_image
+
     def adjust_brightness(self):
         option = self.manager.handler.ask_adjust_brightness_option()
         self.manager.handler.adjust_brightness(option)
@@ -26,6 +35,9 @@ class ImageProcessor:
 
     def equalize_histogram(self):
         self.manager.handler.equalize_histogram()
+
+    def apply_clahe(self):
+        self.manager.handler.apply_clahe()
 
     def linear_filter(self):
         kernel, convert_to_grayscale = self.manager.handler.ask_linear_filter_parameters()
@@ -41,6 +53,9 @@ class ImageProcessor:
         self.manager.handler = self.manager.handler.convert_to_grayscale()
         method = self.manager.handler.ask_binarization_method()
         self.manager.handler.apply_binarization(method)
+
+    def apply_thinning(self):
+        self.manager.handler.apply_thinning()
 
     def undo_change(self):
         self.manager.handler.undo_change()

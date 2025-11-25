@@ -69,6 +69,7 @@ class ImageManager:
                 handler = self.load_image(path, folder_mode=True)
                 if handler:
                     self.handlers.append(handler)
+                    self.originals.append(handler.img_original)
             except:
                 pass
 
@@ -96,7 +97,6 @@ class ImageManager:
             self.handler = new_handler
 
     def restore_original(self):
-        self.handler = self.original_handler
         self.handler.restore_original()
 
     @staticmethod
