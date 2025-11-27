@@ -4,7 +4,7 @@ from enum import Enum
 import cv2
 import numpy as np
 from PIL import Image
-from app.thinning_algorithm import zhangSuen
+from app.thinning_algorithm import zhangSuen, kmm
 
 class AdjustmentMethods(Enum):
     ADDITION = 0
@@ -522,5 +522,6 @@ class BaseImageHandler:
         root.wait_window()
 
     def apply_thinning(self):
-        thin_img = zhangSuen(self.img_modified)
+        # thin_img = zhangSuen(self.img_modified)
+        thin_img = kmm(self.img_modified)
         self.update_image(thin_img)
