@@ -45,17 +45,55 @@ class ImageProcessor:
             self.convert_to_grayscale()
         self.manager.handler.linear_filter(kernel)
 
-    def median_filter(self):
-        size = self.manager.handler.ask_median_mask_size()
+    def gabor_filter(self):
+        self.manager.handler.gabor_filter()
+
+    def add_padding(self,top,right,bottom,left,value):
+        self.manager.handler.add_padding(top=top,right=right,bottom=bottom,left=left,value=value)
+
+    def remove_padding(self,top,right,bottom,left):
+        self.manager.handler.remove_padding(top=top,right=right,bottom=bottom,left=left)
+
+    def median_filter(self, size=None):
+        if size is None:
+            size = self.manager.handler.ask_median_mask_size()
         self.manager.handler.median_filter(size)
 
-    def apply_binarization(self):
-        self.manager.handler = self.manager.handler.convert_to_grayscale()
-        method = self.manager.handler.ask_binarization_method()
+    def apply_binarization(self, method=None):
+        if self.manager.is_image_grayscale(self.manager.handler.img_modified):
+            self.manager.handler = self.manager.handler.convert_to_grayscale()
+        if method is None:
+            method = self.manager.handler.ask_binarization_method()
         self.manager.handler.apply_binarization(method)
 
+    def apply_erosion(self):
+        if self.manager.is_image_binarized(self.manager.handler.img_modified):
+            self.manager.handler.apply_erosion()
+
+    def apply_dilatation(self):
+        if self.manager.is_image_binarized(self.manager.handler.img_modified):
+            self.manager.handler.apply_dilatation()
+
+    def fill_gaps(self):
+        if self.manager.is_image_binarized(self.manager.handler.img_modified):
+            self.manager.handler.fill_gaps()
+
     def apply_thinning(self):
-        self.manager.handler.apply_thinning()
+        if self.manager.is_image_binarized(self.manager.handler.img_modified):
+            if self.manager.is_image_grayscale(self.manager.handler.img_modified):
+                self.manager.handler = self.manager.handler.convert_to_grayscale()
+            self.manager.handler.apply_thinning()
+
+    def apply_crossingnumber(self):
+        if self.manager.is_image_binarized(self.manager.handler.img_modified):
+            if self.manager.is_image_grayscale(self.manager.handler.img_modified):
+                self.manager.handler = self.manager.handler.convert_to_grayscale()
+            self.manager.handler.apply_crossingnumber()
+
+    def draw_minutiae(self, img=None):
+        if img is None:
+            img = self.manager.handler.img_modified
+        self.manager.handler.draw_minutiae(img)
 
     def undo_change(self):
         self.manager.handler.undo_change()
@@ -69,3 +107,5 @@ class ImageProcessor:
         new_handler = self.manager.handlers[new_ord - 1]
         self.manager.handler = new_handler
         self.manager.current_handler_ord = new_ord
+
+

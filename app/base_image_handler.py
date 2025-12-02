@@ -1,10 +1,13 @@
+import datetime
 import tkinter as tk
 from enum import Enum
 
 import cv2
 import numpy as np
-from PIL import Image
-from app.thinning_algorithm import zhangSuen
+from PIL import Image, ImageOps
+
+from app.minutiae_detection import crossingnumber
+from app.thinning_algorithm import zhangSuen, kmm
 
 class AdjustmentMethods(Enum):
     ADDITION = 0
@@ -20,11 +23,13 @@ class BinarizationMethods(Enum):
 
 
 class BaseImageHandler:
-    def __init__(self, img):
+    def __init__(self, img, img_title = None):
         self.img_original = img
+        self.img_title = img_title or datetime.datetime.now()
         self.img_modified = self.img_original.copy()
         self.img_display = self.img_original.copy()
         self.img_change_history = []
+        self.minutiae = None
 
     def change_pixel_color(self, coords):
         ...
@@ -327,6 +332,73 @@ class BaseImageHandler:
     def linear_filter(self, kernel):
         ...
 
+    def compute_orientation(self, img, block=32):
+        img = img.astype(np.float32)
+        rows, cols = img.shape
+
+        gx = cv2.Sobel(img, cv2.CV_32F, 1, 0, ksize=3)
+        gy = cv2.Sobel(img, cv2.CV_32F, 0, 1, ksize=3)
+
+        orientation = np.zeros((rows, cols), dtype=np.float32)
+
+        for i in range(0, rows - block, block):
+            for j in range(0, cols - block, block):
+                gx_block = gx[i:i + block, j:j + block]
+                gy_block = gy[i:i + block, j:j + block]
+
+                Vx = np.sum(2 * gx_block * gy_block)
+                Vy = np.sum(gx_block ** 2 - gy_block ** 2)
+
+                angle = 0.5 * np.arctan2(Vx, Vy)
+                orientation[i:i + block, j:j + block] = angle
+
+        return orientation
+
+    def add_padding(self, top, right, bottom, left, value):
+        padded_img = ImageOps.expand(self.img_modified,  border=(left,top,right,bottom), fill=value)
+        padded = np.array(padded_img)
+        self.update_image(padded)
+
+    def remove_padding(self, top, right, bottom, left):
+        width, height = self.img_modified.size
+        cropped_img = self.img_modified.crop((left,top,width - right,height - bottom))
+        cropped = np.array(cropped_img)
+        self.update_image(cropped)
+
+    def gabor_filter(self, block=32):
+        self.add_padding(block,block,block,block,255)
+        # Pobieramy obraz jako tablicę numpy
+        cv2_img = np.array(self.img_modified)
+        if cv2_img.dtype != np.uint8:
+            cv2_img = cv2_img.astype(np.uint8)
+
+        # Obliczamy orientację lokalną w blokach
+        orientation = self.compute_orientation(cv2_img, block=block)
+
+        rows, cols = cv2_img.shape
+        output = np.zeros_like(cv2_img, dtype=np.float32)
+
+        # Przechodzimy przez bloki zgodnie z obliczeniami orientacji
+        for i in range(0, rows, block):
+            for j in range(0, cols, block):
+                i2 = min(i + block, rows)
+                j2 = min(j + block, cols)
+
+                block_img = cv2_img[i:i2, j:j2]
+                theta = orientation[i, j]
+
+                kernel = cv2.getGaborKernel((28, 28), 4.0, theta, 10.0, 0.5, 0)
+                filtered_block = cv2.filter2D(block_img, cv2.CV_32F, kernel)
+
+                output[i:i2, j:j2] = filtered_block
+
+        # Normalizacja – jak w Twoim kodzie
+        output = cv2.normalize(output, None, 0, 255, cv2.NORM_MINMAX)
+        output = output.astype(np.uint8)
+
+        # Aktualizacja obrazu
+        self.update_image(output)
+        self.remove_padding(block,block,block,block)
     def ask_median_mask_size(self):
         root = tk.Toplevel()
         root.title("Select the size of the median mask")
@@ -521,6 +593,93 @@ class BaseImageHandler:
         root.grab_set()
         root.wait_window()
 
+    def apply_erosion(self):
+        img = np.array(self.img_modified)  # obraz 0/255
+
+        # Zamiana na 0/1 dla działania algorytmu
+        binary = (img == 255).astype(np.uint8)
+
+        h, w = binary.shape
+        result = np.zeros_like(binary)
+
+        # EROZJA (AND na sąsiedztwie 3x3)
+        for i in range(1, h - 1):
+            for j in range(1, w - 1):
+                window = binary[i - 1:i + 2, j - 1:j + 2]
+                if np.all(window == 1):
+                    result[i, j] = 1
+        result = result * 255
+
+        self.update_image(result)
+
+    def apply_dilatation(self):
+        img = np.array(self.img_modified)
+
+        binary = (img == 255).astype(np.uint8)
+
+        h, w = binary.shape
+        result = np.zeros_like(binary)
+
+        # DYLATACJA (OR na sąsiedztwie 3x3)
+        for i in range(1, h - 1):
+            for j in range(1, w - 1):
+                window = binary[i - 1:i + 2, j - 1:j + 2]
+                if np.any(window == 1):
+                    result[i, j] = 1
+
+        result = result * 255
+
+        self.update_image(result)
+
+    def fill_gaps(self):
+        img = np.array(self.img_modified)
+
+        binary = (img == 255).astype(np.uint8)
+
+        h, w = binary.shape
+        result = np.zeros_like(binary)
+
+        for i in range(1, h - 1):
+            for j in range(1, w - 1):
+                window = binary[i - 1:i + 2, j - 1:j + 2]
+                if binary[i, j] == 0:
+                    continue
+                if np.sum(window == 1) >= 5:
+                    result[i, j] = 1
+
+        result = result * 255
+
+        self.update_image(result)
+
     def apply_thinning(self):
-        thin_img = zhangSuen(self.img_modified)
+        thin_img = kmm(self.img_modified)
         self.update_image(thin_img)
+
+    def apply_crossingnumber(self):
+        cn_img, self.minutiae = crossingnumber(self.img_modified)
+        self.update_image(cn_img)
+
+    def draw_minutiae(self, img):
+        img_bgr = cv2.cvtColor(np.array(img), cv2.COLOR_GRAY2BGR)
+
+        for (x, y, t) in self.minutiae:
+            kp = cv2.KeyPoint(x=float(y), y=float(x), size=5)
+
+            if t == 1:  # ending
+                color = (0, 0, 255)  # czerwony
+            elif t == 3:  # bifurcation
+                color = (0, 255, 0)  # zielony
+            elif t == 0:  # isolated
+                color = (255, 0, 0)  # niebieski
+            else:
+                color = (0, 255, 255)  # żółty
+
+            cv2.drawKeypoints(
+                img_bgr,
+                [kp],
+                img_bgr,
+                color,
+                flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS
+            )
+
+        self.update_image(img_bgr)

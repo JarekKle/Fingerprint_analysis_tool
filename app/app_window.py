@@ -9,7 +9,7 @@ from app.coordinates import Coordinates
 from app.image_display import ImageDisplay
 from app.image_manager import ImageManager
 from app.image_processor import ImageProcessor
-
+from app.base_image_handler import BinarizationMethods
 
 class AppWindow:
     def __init__(self, manager: ImageManager, processor: ImageProcessor, display: ImageDisplay):
@@ -51,6 +51,10 @@ class AppWindow:
                 "text": "Apply linear filter",
                 "on_click": self.linear_filter
             },
+            "gabor_filter": {
+                "text": "Apply Gabor filter",
+                "on_click": self.gabor_filter
+            },
             "median_filter": {
                 "text": "Apply median filter",
                 "on_click": self.median_filter
@@ -59,9 +63,29 @@ class AppWindow:
                 "text": "Apply binarization",
                 "on_click": self.apply_binarization
             },
+            "fill_gaps": {
+                "text": "Fill the gaps",
+                "on_click": self.fill_gaps
+            },
+            "erosion": {
+                "text": "Erode",
+                "on_click": self.apply_erosion
+            },
+            "dilatation": {
+                "text": "Dilate",
+                "on_click": self.apply_dilatation
+            },
             "thinning": {
                 "text": "Thinning",
                 "on_click": self.apply_thinning
+            },
+            "cn": {
+                "text": "Crossing Number",
+                "on_click": self.apply_crossingnumber
+            },
+            "pipeline": {
+                "text": "Process fingerprint",
+                "on_click": self.pipeline
             },
             "undo": {
                 "text": "Undo change",
@@ -174,7 +198,8 @@ class AppWindow:
 
         button_frame = tk.Frame(controls_frame)
         button_frame.pack(side=tk.TOP, pady=10, fill=tk.X)
-
+        row = 0
+        col = 0
         for key, data in self.operation_buttons.items():
             btn = tk.Button(
                 button_frame,
@@ -182,8 +207,11 @@ class AppWindow:
                 width=18,
                 command=data["on_click"]
             )
-            btn.pack(side=tk.TOP, fill=tk.X, pady=2)
-
+            btn.grid(row=row, column=col, padx=5, pady=3, sticky="ew")
+            col += 1
+            if col > 1:
+                col = 0
+                row += 1
             data["object"] = btn
 
 
@@ -242,6 +270,10 @@ class AppWindow:
         self.processor.linear_filter()
         self.update_window()
 
+    def gabor_filter(self):
+        self.processor.gabor_filter()
+        self.update_window()
+
     def median_filter(self):
         self.processor.median_filter()
         self.update_window()
@@ -250,10 +282,40 @@ class AppWindow:
         self.processor.apply_binarization()
         self.update_window()
 
+    def apply_erosion(self):
+        self.processor.apply_erosion()
+        self.update_window()
+
+    def apply_dilatation(self):
+        self.processor.apply_dilatation()
+        self.update_window()
+
     def apply_thinning(self):
         self.processor.apply_thinning()
         self.update_window()
 
+    def fill_gaps(self):
+        self.processor.fill_gaps()
+        self.update_window()
+    def apply_crossingnumber(self):
+        self.processor.apply_crossingnumber()
+        self.update_window()
+
+    def pipeline(self):
+        self.processor.apply_clahe()
+        self.processor.median_filter(3)
+        self.processor.gabor_filter()
+        self.processor.apply_binarization(BinarizationMethods.OTSU)
+        # # self.processor.apply_dilatation()
+        # # self.processor.apply_erosion()
+        # self.processor.fill_gaps()
+        # self.processor.fill_gaps()
+        # self.processor.median_filter(3)
+        # self.processor.apply_binarization(BinarizationMethods.OTSU)
+        self.processor.apply_thinning()
+        self.processor.apply_crossingnumber()
+        self.processor.draw_minutiae()
+        self.update_window()
     def undo_change(self):
         self.processor.undo_change()
         self.update_window()
